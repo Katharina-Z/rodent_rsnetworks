@@ -4,19 +4,33 @@ A pipeline for rodent functional MRI analysis
 The overall data structure is:
 
 -parent_directory
+
 --subject1
+
       *MT.nii*
+      
       *RSFMRI.nii*
+      
 ...
+
 --subjectN
+
       *MT.nii*
+      
       *RSFMRI.nii*
+      
 --Templates
+
       *rat_brain.nii.gz*
+      
       *rat.nii.gz*
+      
 --melodic
+
       *melodic_output*
+      
       *dual_regression_output*
+      
       
 The script relies on an installation of fsl (5.10 and higher) and afni. Commands should be ran from the parent directory as most loops require definition of "datanames" i.e. a variable with the names of subject folders. Preprocessing is split into loops for checking the output of each stage. 
 
