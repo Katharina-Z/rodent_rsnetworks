@@ -1,6 +1,7 @@
 #!/bin/bash/
 #running everything from the parent folder of all subjects
-datanames="1001
+datanames="
+1001
 1002
 1003
 1004
@@ -10,19 +11,8 @@ datanames="1001
 1009
 1010"
 
-datanames="
-1011
-1012
-2001
-2002
-2003
-2005
-2006
-2007
-2008
-"
 
-#converting the structurals => need average_script
+#structural images have 6 or 8 echo times and we need to average them. Combining the echo times of the structurals => need average_script
 for i in $datanames
 do 
 cd $i
@@ -49,6 +39,8 @@ mv *nii.gz old_files
 cd ../
 done
 
+
+#For a multiecho sequence, it is important to combine the echo times into one timeseries: here we use a simple sum, though more sophisticated methods (weighted combination, me_ica.py, Kundu et al 2012) exist
 for i in $datanames
 do 
 cd $i/func
@@ -96,7 +88,7 @@ fslroi combined.nii combined_roi $dims
 bet robust_func_bet bet_func_robust -f 0.55 -m 
 fslmaths combined_roi.nii -mas bet_func_robust_mask.nii.gz betted_func 
 #done
-#discard first 4 volumes
+#discard first 4 volumes to keep only steady state volumes in the EPI sequence
 fslroi betted_func d4_betted_func 3 99
 #slice timing + detrending
 slicetimer -i d4_betted_func -o func_tshift --ocustom=../../slice_timing
@@ -121,24 +113,26 @@ done
 
 
 
-#prep a file list that includes all preprocessed func images (cded into New_folder or subjects parent dir)
+################## THE END OF PREPROCESSING ######################
+#funcInTemp.nii.gz is the clean/preprocessed functional data that's been transformed to template space and is ready for analysis
+
+
+####################  ANALYSIS  ###########################
+#prep a file list that includes all preprocessed func images (cded into subjects parent dir)
 find `pwd` -name *funcInTemp.nii.gz > melodic/input_files.txt
-#and run melodic
+#and run melodic to get group ICA maps -d determines the number of components
 melodic -i input_files.txt -o groupICA30_all --nobet -a concat --tr=3 -m ../Templates/rat_brain_mask.nii.gz --report --Oall -d 30
 
-#and run dual regression
+#and run dual regression with Glm-generated design matrix. E.g. group comparisons or a simple t test
 dual_regression groupICA30_all/melodic_IC.nii.gz 1 melodic_all.mat melodic_all.con 500 dual_regression_ttest `cat input_files.txt`
 
 
 
-#########run dual regression on both groups
+#########run dual regression on two  groups
 find `pwd` -name *funcInTemp.nii.gz #delete the func2 images
 melodic -i both_groups.txt -o both_groupsICA20 --nobet -a concat --tr=3 -m ../Templates/rat_brain_mask.nii.gz --report --Oall -d 20
 	#next dual reg
 dual_regression both_groupsICA20/melodic_IC.nii.gz 1 young_vs_old.mat young_vs_old.con 500 both_groupsICA20/dual_reg_Young_vs_Old `cat both_groups.txt`
-
-
-
 
 
 
@@ -150,30 +144,3 @@ fsl_motion_outliers -i combined.nii --dvars -s dvars_motion -o motion_confound
 fsl_glm -i filtered_func_data.nii.gz -d design_with_nuisance.mat --out_res=filtered_func_data_new.nii.gz
 
 mcflirt -in combined.nii 
-
-#run melodic - cd into the folder where the ICA should be run
-melodic -i input_files.txt -o groupICA40 --nobet -a concat --tr=3 -m ../Templates/rat_brain_mask.nii.gz --report --Oall -d 40
-melodic -i input_files.txt -o groupICA20 --nobet -a concat --tr=3 -m ../Templates/rat_brain_mask.nii.gz --report --Oall -d 20
-
-# >>> output from both d40 and d20 ICA is v smooth, whole cortex included
-# >>> try ICA with no smoothing at all
-for i in $datanames; do
-cd $i
-applywarp --ref=../Templates/rat.nii --in=./func/func_tfilter.nii --out=./func/funcInTemp.nii --warp=./struc/combined_MT_warpcoef.nii.gz --premat=./func/func2struc.mat
-cd ../
-done
-#and ICA with no smoothing
-melodic -i input_files.txt -o groupICA20_nosmooth --nobet -a concat --tr=3 -m ../Templates/rat_brain_mask.nii.gz --report --Oall -d 20
-#dual regression
-dual_regression groupICA20_nosmooth/melodic_IC.nii.gz 1 melodic.mat melodic.con 500 dual_regression_ttest `cat input_files.txt`
-
-
-# >>> some smoothing should really be done!
-for i in $datanames; do
-cd $i
-fslmaths ./func/func_tfilter -kernel gauss 1.27 -fmean ./func/func_smooth
-applywarp --ref=../Templates/rat.nii --in=./func/func_smooth.nii --out=./func/funcInTemp.nii --warp=./struc/combined_MT_warpcoef.nii.gz --premat=./func/func2struc.mat
-cd ../
-done
-
-
