@@ -1,2 +1,2 @@
-# rat_rsnetworks
-A pipeline for rodent functional MRI analysis
+# Resting State fMRI analysis pipeline
+A pipeline for rodent functional MRI analysi
