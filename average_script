@@ -1,0 +1,35 @@
+#!/bin/bash 
+#make executable by chmod 777 775 average_script
+#usage: ./average_script  [type file names wihtout .nii here]
+ #e.g. ./average_script MT_004 PD_005 T1_004 t1map MTSAT
+#thansk to https://www.lifewire.com/pass-arguments-to-bash-script-2200571
+for FILE1 in "$@"
+	do
+	fslsplit $FILE1.nii
+	var="$(ls vol* | wc -l)"
+
+	if (($var==1))
+	then
+	mv vol0000.nii.gz $FILE1 
+	fi
+
+	if (($var==6))
+	then
+	3dcalc -a vol0000.nii.gz -b vol0001.nii.gz -c vol0002.nii.gz -d vol0003.nii.gz -e vol0004.nii.gz -f vol0005.nii.gz -expr '(a+b+c+d+e+f)/6' -prefix combined_$FILE1
+	fi 
+	
+	if (($var==8))
+	then
+	3dcalc -a vol0000.nii.gz -b vol0001.nii.gz -c vol0002.nii.gz -d vol0003.nii.gz -e vol0004.nii.gz -f vol0005.nii.gz -g vol0006.nii.gz -h vol0007.nii.gz -expr '(a+b+c+d+e+f+g+h)/8' -prefix combined_$FILE1
+	fi
+
+	3dAFNItoNIFTI combined_$FILE1+tlrc.BRIK 
+	rm combined_$FILE1+tlrc.BRIK combined_$FILE1+tlrc.HEAD
+	rm vol0000.nii.gz vol0001.nii.gz vol0002.nii.gz vol0003.nii.gz vol0004.nii.gz vol0005.nii.gz
+	rm vol0006.nii.gz vol0007.nii.gz
+		#until [ -f ./combined_$FILE1.nii ]
+		#do
+		#     sleep 2
+		#done
+done
+
