@@ -1,6 +1,6 @@
 #!/bin/bash 
 #make executable by chmod 777 775 average_script
-#usage: ./average_script  [type file names wihtout .nii here]
+#usage: /AVERAGE_SCRIPT_PATH/average_script  [type file names wihtout .nii here]
  #e.g. ./average_script MT_004 PD_005 T1_004 t1map MTSAT
 #thansk to https://www.lifewire.com/pass-arguments-to-bash-script-2200571
 for FILE1 in "$@"
